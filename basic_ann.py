@@ -37,7 +37,7 @@ torch.manual_seed(4555)
 print(torch.initial_seed())
 model = Model()
 
-df = pd.read_csv('PYTORCH_NOTEBOOKS/Data/iris.csv')
+df = pd.read_csv('iris.csv')
 
 # Matplotlib plot
 fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10,7))
