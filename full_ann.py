@@ -5,6 +5,61 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+class TabularModel(nn.Module):
+
+    def __init__(self, emb_szs: list, n_cont, out_sz, layers, p=0.5):
+        
+        # Inherit from parent nn.Module
+        super.__init__()
+        
+        # Set dense vector representation for categorical data
+        self.embeds = nn.ModuleList([nn.Embedding(ni,nf) for ni,nf in emb_szs])
+        # Set dropout layer to prevent overfitting
+        self.emb_drop = nn.Dropout(p)
+        # Normalize continuous data within some range
+        self.bn_cont = nn.BatchNorm1d(n_cont)
+
+        layerlist = []
+        n_emb = sum([nf for _, nf in emb_szs])
+        n_in = n_emb + n_cont
+
+        # Set up layers
+        for i in layers:
+            # Append linear layer
+            layerlist.append(nn.Linear(n_in,i))
+            # Add activation function
+            layerlist.append(nn.ReLu(inplace=True))
+            # Normalize continuous values
+            layerlist.append(nn.BatchNorm1d(i))
+            # Add dropout layer
+            layerlist.append(nn.Dropout(p))
+            n_in = i
+        
+        # Predict final value
+        layerlist.append(nn.Linear(layers[-1], out_sz))
+
+        self.layers = nn.Sequential(*layerlist )
+
+    def forward(self, x_cat, x_cont):
+        embeddings = []
+
+        for i, e in enumerate(self.embeds):
+            embeddings.append(e(x_cat[:,i]))
+
+        # Run categorical features through
+        x = torch.cat(embeddings, 1)
+        x = self.emb_drop(x)
+
+        # Normalize continuous values
+        x_cont = self.bn_cont(x_cont)
+
+        # Take in both cat and cont values row-by-row
+        x = torch.cat([x, x_cont], axis=1)
+        x = self.layers(x)
+
+        # Output tensor with encodings for features
+        return x
+
 def haversine_distance(df, lat1, long1, lat2, long2):
     """
     Calculates the haversine distance between 2 sets of GPS coordinates in df
