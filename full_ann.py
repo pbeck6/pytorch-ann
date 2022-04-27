@@ -7,16 +7,23 @@ import matplotlib.pyplot as plt
 
 class TabularModel(nn.Module):
 
-    def __init__(self, emb_szs: list, n_cont, out_sz, layers, p=0.5):
+    def __init__(self, emb_szs, n_cont, out_sz, layers, p=0.5):
+        """
+        emb_szs: list of tuples: each categorical variable size is paired with an embedding size
+        n_cont: int: number of continuous variables
+        out_sz: int: output size
+        layers: list of ints: layer sizes
+        p: float: dropout probability for each layer (for simplicity we'll use the same value throughout)
+        """
         
         # Inherit from parent nn.Module
         super.__init__()
         
-        # Set dense vector representation for categorical data
+        # Set embedded layers for categorical data
         self.embeds = nn.ModuleList([nn.Embedding(ni,nf) for ni,nf in emb_szs])
-        # Set dropout layer to prevent overfitting
+        # Set dropout layer to prevent overfitting for embeddings
         self.emb_drop = nn.Dropout(p)
-        # Normalize continuous data within some range
+        # Set up normalization function for continuous variables 
         self.bn_cont = nn.BatchNorm1d(n_cont)
 
         layerlist = []
@@ -41,6 +48,10 @@ class TabularModel(nn.Module):
         self.layers = nn.Sequential(*layerlist )
 
     def forward(self, x_cat, x_cont):
+        """
+        Preprocess the embeddings and normalize the continuous variables before passing them through the layers.
+        Use torch.cat() to combine multiple tensors into one.
+        """
         embeddings = []
 
         for i, e in enumerate(self.embeds):
