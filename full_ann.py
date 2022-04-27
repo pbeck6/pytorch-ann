@@ -42,6 +42,41 @@ if __name__ == "__main__":
     df['AMorPM'] = np.where(df['Hour']<12, 'am', 'pm')
     df['Weekday'] = df['EDTdate'].dt.strftime("%a")
 
+    # Prepare categorical and continuous values
+    cat_cols = ['Hour', 'AMorPM', 'Weekday']
+    cont_cols = ['pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude','passenger_count', 'dist_km']
+    
+    # Set y column as fare amount (the target value)
+    y_col = ['fare_amount']
 
-    print(df.head())
+    # Change categorical values into Category objects with numerical code
+    for cat in cat_cols:
+        df[cat] = df[cat].astype('category')
+    
+    # Convert to array for use as PyTorch tensor
+    hr = df['Hour'].cat.codes.values
+    ampm = df['AMorPM'].cat.codes.values
+    wkdy = df['Weekday'].cat.codes.values
+
+    # Stack them column-wise like original data
+    cats = np.stack([hr, ampm, wkdy], axis=1)
+
+    # One-line alternate list comprehension for categorical values
+    # cats = np.stack([df[col].cat.codes.values for col in cat_cols], axis=1)
+
+    # Convert categorical data to tensor
+    cats = torch.tensor(cats, dtype=torch.int64)
+
+    # Convert continuoouts values to numerical values in tensor
+    conts = np.stack([df[col].values for col in cont_cols], axis=1)
+    conts = torch.tensor(conts, dtype=torch.float)
+
+    # Convert label into tensor
+    y = torch.tensor(df[y_col].values, dtype=torch.float)
+
+    # Set embedding sizes (denser vector representation than one hot encoding)
+    cat_szs = [len(df[col].cat.categories) for col in cat_cols]
+    emb_szs = [(size, min(50,(size+1//2))) for size in cat_szs]
+
+
 #
