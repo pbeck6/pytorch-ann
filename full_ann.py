@@ -28,7 +28,7 @@ class TabularModel(nn.Module):
 
         # Set up empty array to hold layers, size of combined cat and cont data
         layerlist = []
-        n_emb = sum([nf for _, nf in emb_szs])
+        n_emb = sum((nf for _, nf in emb_szs))
         n_in = n_emb + n_cont
 
         # Set up each layer of size i
@@ -47,7 +47,7 @@ class TabularModel(nn.Module):
         layerlist.append(nn.Linear(layers[-1], out_sz))
 
         # Convert layers to Sequential container to chain layers together
-        self.layers = nn.Sequential(*layerlist )
+        self.layers = nn.Sequential(*layerlist)
 
     def forward(self, x_cat, x_cont):
         """
