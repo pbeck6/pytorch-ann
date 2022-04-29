@@ -95,7 +95,7 @@ def haversine_distance(df, lat1, long1, lat2, long2):
 
 if __name__ == "__main__":
     # Read in dataset of taxi fares
-    df = pd.read_csv('NYCTaxiFares.csv')
+    df = pd.read_csv('./data/nyctaxifares.csv')
 
     # Calculate trip distance from coordinates and add column to df
     # Alternate method using apply()
@@ -208,5 +208,5 @@ if __name__ == "__main__":
         print(f'Predicted: {y_val[i].item():8.2f} | Actual: {y_test[i].item():8.2f}')
 
     # Save neural net for future use, if satisfied
-    # torch.save(model.state_dict(), 'TaxiFareModel.pt')
+    # torch.save(model.state_dict(), 'taxi_model.pt')
 #

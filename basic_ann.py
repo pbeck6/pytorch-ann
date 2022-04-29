@@ -37,7 +37,7 @@ torch.manual_seed(4555)
 print(torch.initial_seed())
 model = Model()
 
-df = pd.read_csv('iris.csv')
+df = pd.read_csv('./data/iris.csv')
 
 # Matplotlib plot
 fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10,7))
@@ -137,12 +137,14 @@ with torch.no_grad():
 print(f'{correct} correct predictions')
 
 
+# Code block for saving, loading, and running optimized model
+"""
 # save model file to disk, essentially the learned parameters(layers) of the model
-torch.save(model.state_dict(), 'my_iris_model.pt')
+torch.save(model.state_dict(), 'iris_model.pt')
 
 # load model, assumes that Model class still exists
 new_model = Model()
-new_model.load_state_dict(torch.load('my_iris_model.pt'))
+new_model.load_state_dict(torch.load('iris_model.pt'))
 # check model was loaded
 new_model.eval()
 
@@ -151,3 +153,5 @@ mystery_iris = torch.tensor([5.6, 3.7, 2.2, 0.5])
 with torch.no_grad():
     # send mystery flower through network layers to get output (prediction)
     print(new_model.forward(mystery_iris))
+
+"""
