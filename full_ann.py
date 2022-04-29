@@ -1,78 +1,11 @@
 import torch
 import torch.nn as nn
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-class TabularModel(nn.Module):
-
-    def __init__(self, emb_szs, n_cont, out_sz, layers, p=0.5):
-        """
-        emb_szs: list[tuples]: (categorical variable size, embedding size)
-        n_cont: int: # of continuous variables
-        out_sz: int: output size
-        layers: list[int]: layer sizes
-        p: float: dropout probability for each layer
-        """
-        
-        # Inherit from parent nn.Module
-        super().__init__()
-        
-        # Set embedded layers in sequential order inside ModuleList container
-        self.embeds = nn.ModuleList([nn.Embedding(ni,nf) for ni,nf in emb_szs])
-        # Set dropout function to prevent overfitting for embeddings
-        self.emb_drop = nn.Dropout(p)
-        # Set up normalization function for continuous variables 
-        self.bn_cont = nn.BatchNorm1d(n_cont)
-
-        # Set up empty array to hold layers, size of combined cat and cont data
-        layerlist = []
-        n_emb = sum((nf for _, nf in emb_szs))
-        n_in = n_emb + n_cont
-
-        # Set up each layer of size i
-        for i in layers:
-            # Append linear layer of i nodes that processes n_in values (both cat and cont)
-            layerlist.append(nn.Linear(n_in,i))
-            # Add activation function
-            layerlist.append(nn.ReLU(inplace=True))
-            # Normalize continuous values
-            layerlist.append(nn.BatchNorm1d(i))
-            # Add dropout layer
-            layerlist.append(nn.Dropout(p))
-            n_in = i
-        
-        # Layer to predict final value (regression as opposed to classification)
-        layerlist.append(nn.Linear(layers[-1], out_sz))
-
-        # Convert layers to Sequential container to chain layers together
-        self.layers = nn.Sequential(*layerlist)
-
-    def forward(self, x_cat, x_cont):
-        """
-        Preprocess embeddings and normalize cont variables before passing them through layers
-        Use torch.cat() to concatenate multiple tensors into one
-        """
-        embeddings = []
-
-        # Create tensor of embeddings for each feature (convert numerical cat (i) => embedding (e))
-        for i, e in enumerate(self.embeds):
-            embeddings.append(e(x_cat[:,i])) # every row, ith column (feature)
-
-        # Combine embeddings into one 2d tensor (matrix) and preprocess with dropout func
-        x = torch.cat(embeddings, 1)
-        x = self.emb_drop(x)
-
-        # Preprocess continuous values with normalization func
-        x_cont = self.bn_cont(x_cont)
-
-        # Take in both cat and cont values row-by-row
-        x = torch.cat([x, x_cont], 1) # concatenate over 1 dimension
-        x = self.layers(x)
-
-        # Output tensor with encodings for features
-        return x
+# Get tabular neural net Model
+from neuralnet.models import TabularModel
 
 def haversine_distance(df, lat1, long1, lat2, long2):
     """
