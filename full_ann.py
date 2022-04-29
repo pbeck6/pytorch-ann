@@ -8,6 +8,11 @@ import matplotlib.pyplot as plt
 from neuralnet.models import TabularModel
 from geo.haversine import haversine_distance
 
+# Training parameters
+EPOCHS = 300
+BATCH_N = 6000
+TEST_SPLIT = 0.2
+
 if __name__ == "__main__":
     # Read in dataset of taxi fares
     df = pd.read_csv('./data/nyctaxifares.csv')
@@ -22,13 +27,21 @@ if __name__ == "__main__":
 
     # Adjust UTC datetime for EST in New York City
     df['EDTdate'] = df['pickup_datetime'] - pd.Timedelta(hours=4)
+    df['hour'] = df['EDTdate'].dt.hour
+    df['weekday'] = df['EDTdate'].dt.strftime("%a")
 
-    df['Hour'] = df['EDTdate'].dt.hour
-    df['AMorPM'] = np.where(df['Hour']<12, 'am', 'pm')
-    df['Weekday'] = df['EDTdate'].dt.strftime("%a")
-
+    # Calculate whether the ride time is during rush hour
+    def rush_hour(df) -> str:
+        if 8 <= df['hour'] <= 9:
+            return 'am_rush'
+        elif 15 <= df['hour'] <= 19:
+            return 'pm_rush'
+        else:
+            return 'regular'
+    df['rush'] = df.apply(rush_hour, axis=1)
+ 
     # Prepare categorical and continuous values
-    cat_cols = ['Hour', 'AMorPM', 'Weekday']
+    cat_cols = ['hour', 'rush', 'weekday']
     cont_cols = ['pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude','passenger_count', 'dist_km']
     
     # Set y column as fare amount (the target value)
@@ -39,12 +52,12 @@ if __name__ == "__main__":
         df[cat] = df[cat].astype('category')
     
     # Convert to array for use as PyTorch tensor
-    hr = df['Hour'].cat.codes.values
-    ampm = df['AMorPM'].cat.codes.values
-    wkdy = df['Weekday'].cat.codes.values
+    hr = df['hour'].cat.codes.values
+    rush = df['rush'].cat.codes.values
+    wkdy = df['weekday'].cat.codes.values
 
     # Stack them column-wise like original data
-    cats = np.stack([hr, ampm, wkdy], axis=1)
+    cats = np.stack([hr, rush, wkdy], axis=1)
 
     # One-line alternate list comprehension for categorical values
     # cats = np.stack([df[col].cat.codes.values for col in cat_cols], axis=1)
@@ -67,7 +80,7 @@ if __name__ == "__main__":
     # conts is a 2d tensor, conts.shape[1] = # of cols = # of cont features
     # emb_szs in this case will be size+1//2
     # Total # of in-features will be conts.shape[1] + sum([emb_szs[i][1] for i in emb_szs])
-    torch.manual_seed(33)
+    torch.manual_seed(3349)
     model = TabularModel(emb_szs, conts.shape[1], 1, [200,100], p=0.4) # out_sz = 1
 
     print(model)
@@ -77,22 +90,20 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     # Train-test split
-    batch_size = 600
-    test_size = int(batch_size*0.2)
+    test_size = int(BATCH_N*TEST_SPLIT)
 
     # Data came pre-shuffled, otherwise randomly shuffle beforehand
-    cat_train = cats[:batch_size-test_size]
-    cat_test = cats[batch_size-test_size:batch_size]
-    con_train = conts[:batch_size-test_size]
-    con_test = conts[batch_size-test_size:batch_size]
+    cat_train = cats[:BATCH_N-test_size]
+    cat_test = cats[BATCH_N-test_size:BATCH_N]
+    con_train = conts[:BATCH_N-test_size]
+    con_test = conts[BATCH_N-test_size:BATCH_N]
 
-    y_train = y[:batch_size-test_size]
-    y_test = y[batch_size-test_size:batch_size]
+    y_train = y[:BATCH_N-test_size]
+    y_test = y[BATCH_N-test_size:BATCH_N]
 
     # Train for # of epochs
-    epochs = 30
     losses = []
-    for i in range(epochs):
+    for i in range(EPOCHS):
         i += 1
 
         # Forward pass
@@ -124,4 +135,5 @@ if __name__ == "__main__":
 
     # Save neural net for future use, if satisfied
     # torch.save(model.state_dict(), 'taxi_model.pt')
+
 #
